@@ -155,11 +155,12 @@ class ParameterSet(NamedTuple):
         if force_tuple:
             return cls.param(parameterset)
         else:
-            # TODO: Refactor to fix this type-ignore. Currently the following
-            # passes type-checking but crashes:
-            #
-            #   @pytest.mark.parametrize(('x', 'y'), [1, 2])
-            #   def test_foo(x, y): pass
+            # Wrap non-tuple/non-list values in a tuple to avoid a crash
+            # when a non-iterable (e.g. ``None``) is passed with a
+            # trailing-comma parameter name (e.g. ``"x,"``).
+            # See https://github.com/pytest-dev/pytest/issues/14619.
+            if not isinstance(parameterset, (tuple, list)):
+                return cls.param(parameterset)
             return cls(parameterset, marks=[], id=None)  # type: ignore[arg-type]
 
     @staticmethod
