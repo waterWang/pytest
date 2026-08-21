@@ -1296,6 +1296,13 @@ class FixtureDef(Generic[FixtureValue]):
         finally:
             # Schedule our finalizer, even if the setup failed.
             request.node.addfinalizer(finalizer)
+            # If setup failed, the fixture is not cached (cached_result is None).
+            # In that case, teardown via finish() will early-return at the
+            # "Already finished" guard, so the finalizers added above would
+            # never run. Clear them so the next call to execute() does not
+            # hit "assert not self._finalizers". See #14775.
+            if self.cached_result is None:
+                self._finalizers.clear()
 
         return result
 

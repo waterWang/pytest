@@ -1290,6 +1290,43 @@ class TestRequestBasic:
         reprec = pytester.inline_run()
         reprec.assertoutcome(passed=2)
 
+    def test_class_scoped_instance_method_fixture_no_internal_error(
+        self, pytester: Pytester
+    ) -> None:
+        """A class-scoped fixture defined as an instance method is deprecated
+        (#13647) and raises PytestRemovedIn10Warning (which -Werror turns into
+        an error), but the failure must not corrupt the fixture's finalizers:
+        a subsequent test in the same class got an internal AssertionError
+        instead of the intended deprecation error (#14775)."""
+        pytester.makepyfile(
+            """
+            import pytest
+
+
+            class TestFixt:
+                @pytest.fixture(scope="class")
+                def fixt(self):
+                    yield
+
+                def test_1(self, fixt):
+                    pass
+
+                def test_2(self, fixt):
+                    pass
+            """
+        )
+        result = pytester.runpytest("-Werror")
+        result.assert_outcomes(errors=2)
+        result.stdout.fnmatch_lines(
+            [
+                "*PytestRemovedIn10Warning*",
+                "*Class-scoped fixtures defined as instance methods are deprecated*",
+            ]
+        )
+        # The second test must show the intended deprecation error, not an
+        # internal assertion error from the fixture machinery.
+        result.stdout.no_fnmatch_line("*AssertionError*assert not self._finalizers*")
+
 
 class TestRequestSessionScoped:
     @pytest.fixture(scope="session")
