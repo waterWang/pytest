@@ -1,0 +1,1 @@
+Avoid an internal ``AssertionError`` when a class-scoped fixture defined as an instance method fails setup (e.g. under ``-Werror`` it raises :class:`pytest.PytestRemovedIn10Warning`): the fixture's finalizers are now cleared after an uncached setup failure, so subsequent tests report the intended deprecation error instead of crashing the fixture machinery.
